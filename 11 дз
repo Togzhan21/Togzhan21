@@ -1,0 +1,215 @@
+import uuid
+import random
+from typing import List, Dict
+
+
+# DATABASE SIMULATION
+
+class OrdersDB:
+    orders: Dict[str, dict] = {}
+
+class InventoryDB:
+    inventory: Dict[str, dict] = {}
+
+class ClientsDB:
+    clients: Dict[str, dict] = {}
+
+class RoutesDB:
+    routes: Dict[str, list] = {}
+
+class CouriersDB:
+    couriers: Dict[str, dict] = {}
+
+
+# MODELS
+
+class Client:
+    def __init__(self, name: str, email: str):
+        self.id = str(uuid.uuid4())
+        self.name = name
+        self.email = email
+        ClientsDB.clients[self.id] = {"name": name, "email": email}
+
+class Product:
+    def __init__(self, name: str, quantity: int):
+        self.id = str(uuid.uuid4())
+        self.name = name
+        self.quantity = quantity
+
+class Order:
+    def __init__(self, client_id: str, products: List[Product]):
+        self.id = str(uuid.uuid4())
+        self.client_id = client_id
+        self.products = products
+        self.status = "Created"
+        OrdersDB.orders[self.id] = self.__dict__
+
+
+# WAREHOUSE MANAGEMENT
+
+class WarehouseManagement:
+    @staticmethod
+    def add_product(product: Product):
+        if product.name in InventoryDB.inventory:
+            InventoryDB.inventory[product.name]["quantity"] += product.quantity
+        else:
+            InventoryDB.inventory[product.name] = {"id": product.id, "quantity": product.quantity}
+        LoggingService.log(f"Added {product.quantity} of {product.name} to warehouse.")
+
+    @staticmethod
+    def reserve_products(products: List[Product]) -> bool:
+        for p in products:
+            if p.name not in InventoryDB.inventory or InventoryDB.inventory[p.name]["quantity"] < p.quantity:
+                LoggingService.log(f"Not enough {p.name} in inventory.")
+                return False
+        for p in products:
+            InventoryDB.inventory[p.name]["quantity"] -= p.quantity
+        LoggingService.log("Products reserved successfully.")
+        return True
+
+
+# ROUTE OPTIMIZATION
+
+class RouteOptimization:
+    @staticmethod
+    def optimize(addresses: List[str]) -> List[str]:
+        optimized = sorted(addresses, key=lambda x: random.random())
+        RoutesDB.routes["last_route"] = optimized
+        LoggingService.log(f"Route optimized: {optimized}")
+        return optimized
+
+
+# NOTIFICATION SERVICE
+
+class NotificationService:
+    @staticmethod
+    def notify(client_id: str, message: str):
+        client = ClientsDB.clients.get(client_id)
+        if client:
+            print(f"Notification to {client['name']} ({client['email']}): {message}")
+            LoggingService.log(f"Notification sent to {client['name']}: {message}")
+
+
+# ANALYTICS SERVICE
+
+class AnalyticsService:
+    @staticmethod
+    def generate_report():
+        total_orders = len(OrdersDB.orders)
+        total_inventory = sum(v["quantity"] for v in InventoryDB.inventory.values())
+        LoggingService.log(f"Analytics Report: Orders={total_orders}, Inventory={total_inventory}")
+        print(f"Analytics Report: Orders={total_orders}, Inventory={total_inventory}")
+
+
+# RETURNS MANAGEMENT
+
+class ReturnsManagement:
+    @staticmethod
+    def process_return(order_id: str):
+        order = OrdersDB.orders.get(order_id)
+        if order:
+            order["status"] = "Returned"
+            NotificationService.notify(order["client_id"], f"Order {order_id} has been returned.")
+            LoggingService.log(f"Order {order_id} returned.")
+        else:
+            LoggingService.log(f"Order {order_id} not found for return.")
+
+
+# EXTERNAL SYSTEMS
+
+class CourierServicesAPI:
+    @staticmethod
+    def get_status(order_id: str):
+        status = random.choice(["Picked Up", "In Transit", "Delivered"])
+        LoggingService.log(f"Courier status for {order_id}: {status}")
+        return status
+
+class PaymentSystemsAPI:
+    @staticmethod
+    def process_payment(order_id: str, amount: float):
+        LoggingService.log(f"Processed payment of {amount} for order {order_id}")
+        return True
+
+
+# LOGGING & MONITORING
+
+class LoggingService:
+    @staticmethod
+    def log(message: str):
+        print(f"[LOG] {message}")
+
+class SystemMonitoring:
+    @staticmethod
+    def check_system():
+        LoggingService.log("System monitoring check completed.")
+
+
+# ORDER MANAGEMENT
+
+class OrderManagement:
+    @staticmethod
+    def create_order(client_id: str, products: List[Product]) -> str:
+        order = Order(client_id, products)
+        if WarehouseManagement.reserve_products(products):
+            NotificationService.notify(client_id, f"Order {order.id} created successfully.")
+        else:
+            NotificationService.notify(client_id, f"Order {order.id} failed: insufficient stock.")
+        return order.id
+
+    @staticmethod
+    def update_status(order_id: str, status: str):
+        order = OrdersDB.orders.get(order_id)
+        if order:
+            order["status"] = status
+            NotificationService.notify(order["client_id"], f"Order {order_id} status updated to {status}.")
+        else:
+            LoggingService.log(f"Order {order_id} not found.")
+
+
+# FRONTEND SIMULATION
+
+class WebClient:
+    @staticmethod
+    def place_order(client_id: str, products: List[Product]):
+        return OrderManagement.create_order(client_id, products)
+
+class MobileApp:
+    @staticmethod
+    def track_order(order_id: str):
+        status = CourierServicesAPI.get_status(order_id)
+        print(f"Mobile App: Order {order_id} status: {status}")
+
+
+# DEMO
+
+if __name__ == "__main__":
+    # Клиенты
+    alice = Client("Ayazhan", "AyazhanBaitas@example.com")
+    bob = Client("Bakyt", "BakytMalikov@example.com")
+
+    # Склад
+    WarehouseManagement.add_product(Product("Laptop", 5))
+    WarehouseManagement.add_product(Product("Phone", 10))
+
+    # Создание заказа через WebClient
+    order1_id = WebClient.place_order(alice.id, [Product("Laptop", 1), Product("Phone", 2)])
+    order2_id = WebClient.place_order(bob.id, [Product("Laptop", 6)])  # Недостаточно на складе
+
+    # Обновление статуса и возврат
+    OrderManagement.update_status(order1_id, "In Progress")
+    OrderManagement.update_status(order1_id, "Delivered")
+    ReturnsManagement.process_return(order1_id)
+
+    # Отслеживание через MobileApp
+    MobileApp.track_order(order1_id)
+
+    # Оптимизация маршрута
+    RouteOptimization.optimize(["459 Main St", "367 Park Ave", "961 Broadway"])
+
+    # Аналитика
+    AnalyticsService.generate_report()
+
+    # Мониторинг системы
+    SystemMonitoring.check_system()
+
+
