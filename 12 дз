@@ -98,7 +98,8 @@ if __name__ == "__main__":
 
 
 
-#2 часть
+#2 задание
+
 class Client:
     def __init__(self, name):
         self.name = name
