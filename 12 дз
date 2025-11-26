@@ -1,0 +1,211 @@
+class Candidate:
+    def __init__(self, name):
+        self.name = name
+        self.applied = False
+        self.interview_passed = False
+        self.offer_accepted = False
+
+class System:
+    def __init__(self):
+        self.database = []
+
+    def add_employee(self, candidate):
+        print(f"[Система] Добавляем {candidate.name} в базу данных.")
+        self.database.append(candidate.name)
+
+class HR:
+    def check_job_request(self, job_request):
+        print("[HR-отдел] Проверка заявки на вакансию...")
+        if job_request['valid']:
+            print("[HR-отдел] Заявка утверждена.")
+            return True
+        else:
+            print("[HR-отдел] Заявка отклонена. Руководитель должен доработать.")
+            return False
+
+    def review_candidates(self, candidates):
+        accepted = []
+        for c in candidates:
+            if c.applied and c.interview_passed:  # условие успешной анкеты
+                accepted.append(c)
+                print(f"[HR-отдел] Кандидат {c.name} приглашен на собеседование.")
+            else:
+                print(f"[HR-отдел] Кандидат {c.name} отклонен.")
+        return accepted
+
+    def send_offer(self, candidate):
+        print(f"[HR-отдел] Предлагаем оффер кандидату {candidate.name}.")
+        candidate.offer_accepted = True
+
+    def notify_it(self, candidate):
+        print(f"[HR-отдел] Уведомляем IT-отдел о настройке рабочего места для {candidate.name}.")
+
+class Manager:
+    def conduct_interview(self, candidate):
+        print(f"[Руководитель отдела] Проводим техническое собеседование с {candidate.name}.")
+        candidate.interview_passed = True
+
+class HRManager:
+    def conduct_initial_interview(self, candidate):
+        print(f"[HR-менеджер] Проводим первичное интервью с {candidate.name}.")
+        candidate.interview_passed = True
+
+def main():
+    # Участники
+    system = System()
+    hr = HR()
+    manager = Manager()
+    hr_manager = HRManager()
+
+    # 1. Подготовительный этап
+    job_request = {'valid': True}  # Измените на False, чтобы проверить ветвление
+    print("[Руководитель отдела] Создаем заявку на вакансию.")
+    if not hr.check_job_request(job_request):
+        return
+
+    # 2. Этап отбора кандидатов
+    candidates = [Candidate("Аскат"), Candidate("Мариям")]
+    for c in candidates:
+        c.applied = True
+        print(f"[Кандидат] {c.name} подал заявку.")
+
+    accepted_candidates = hr.review_candidates(candidates)
+
+    # 3. Этап собеседования
+    for c in accepted_candidates:
+        hr_manager.conduct_initial_interview(c)
+        manager.conduct_interview(c)
+        if c.interview_passed:
+            hr.send_offer(c)
+            system.add_employee(c)
+            hr.notify_it(c)
+        else:
+            print(f"[HR-отдел] Кандидат {c.name} получил отказ.")
+
+    print("[Процесс найма завершен]")
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+#2 часть
+class Client:
+    def __init__(self, name):
+        self.name = name
+
+    def request_availability(self, system, date):
+        print(f"[Клиент] {self.name} запрашивает доступность площадки на {date}")
+        return system.check_availability(date)
+
+    def confirm_booking(self, system):
+        print(f"[Клиент] {self.name} подтверждает бронирование площадки")
+        return system.process_payment(self)
+
+    def send_feedback(self, system, feedback):
+        print(f"[Клиент] {self.name} отправляет отзыв: {feedback}")
+        system.collect_feedback(self, feedback)
+
+
+class System:
+    def __init__(self):
+        self.bookings = []
+        self.feedbacks = []
+
+    def check_availability(self, date):
+        available = True  # Можно менять на False для теста недоступной площадки
+        if available:
+            print(f"[Система] Площадка доступна на {date}. Информация о стоимости и условиях отправлена клиенту.")
+        else:
+            print(f"[Система] Площадка недоступна на {date}. Предложено выбрать другую дату/площадку.")
+        return available
+
+    def process_payment(self, client):
+        print("[Система] Отправка запроса на предоплату через платежный шлюз...")
+        gateway = PaymentGateway()
+        success = gateway.process_payment(client)
+        if success:
+            print("[Система] Бронирование подтверждено.")
+            self.bookings.append(client.name)
+        else:
+            print("[Система] Платеж отклонен. Клиенту предложено повторить оплату.")
+        return success
+
+    def notify_admin(self, admin, client):
+        print("[Система] Отправка уведомления администратору площадки о бронировании.")
+        admin.prepare_tasks(client)
+
+    def collect_feedback(self, client, feedback):
+        self.feedbacks.append((client.name, feedback))
+        print("[Система] Отчет о отзывах клиентов отправлен менеджеру.")
+        manager = Manager()
+        manager.receive_report(self.feedbacks)
+
+
+class PaymentGateway:
+    def process_payment(self, client):
+        print("[Платежный шлюз] Обработка платежа...")
+        success = True  # Можно менять на False для теста отклоненного платежа
+        if success:
+            print("[Платежный шлюз] Платеж успешен.")
+        else:
+            print("[Платежный шлюз] Платеж отклонен.")
+        return success
+
+
+class Admin:
+    def prepare_tasks(self, client):
+        print(f"[Администратор] Подготовка списка задач для мероприятия клиента {client.name}.")
+        contractors = [Contractor("Подрядчик 1"), Contractor("Подрядчик 2")]
+        for c in contractors:
+            c.notify_task(client)
+            c.confirm_task(client)
+        print("[Система] Отчет о выполнении задач отправлен администратору.")
+
+
+class Contractor:
+    def __init__(self, name):
+        self.name = name
+
+    def notify_task(self, client):
+        print(f"[{self.name}] Получил уведомление о задаче для клиента {client.name}.")
+
+    def confirm_task(self, client):
+        print(f"[{self.name}] Подтвердил выполнение задачи для клиента {client.name}.")
+
+
+class Manager:
+    def receive_report(self, feedbacks):
+        print(f"[Менеджер] Получил отчет с отзывами клиентов: {feedbacks}")
+
+
+def main():
+    client = Client("Айым")
+    system = System()
+    admin = Admin()
+    date = "2025-12-10"
+
+    # Этап 1: Запрос доступности
+    if client.request_availability(system, date):
+        # Этап 2: Подтверждение бронирования и платеж
+        if client.confirm_booking(system):
+            # Уведомление администратору и организация мероприятия
+            system.notify_admin(admin, client)
+            # Этап 4: Завершение мероприятия
+            client.send_feedback(system, "Отличный сервис!")
+
+
+if __name__ == "__main__":
+    main()
+
+  
+   
