@@ -86,3 +86,202 @@ if __name__ == "__main__":
     booking.pay(price)
 
     booking.save_history()
+
+
+ 2 задание
+
+from abc import ABC, abstractmethod
+
+
+# ---------- STATE INTERFACE ----------
+class State(ABC):
+    @abstractmethod
+    def next_state(self, request):
+        pass
+
+    @abstractmethod
+    def cancel(self, request):
+        pass
+
+
+# ---------- STATES ----------
+class Created(State):
+    def next_state(self, request):
+        print("Заявка отправлена клиенту. Статус: Ожидает оплаты")
+        request.state = PendingPayment()
+
+    def cancel(self, request):
+        print("Заявка отменена.")
+        request.state = Cancelled()
+
+
+class PendingPayment(State):
+    def next_state(self, request):
+        print("Клиент оплатил заявку. Статус: Оплачена")
+        request.state = Paid()
+
+    def cancel(self, request):
+        print("Клиент не успел оплатить. Заявка отменена.")
+        request.state = Cancelled()
+
+
+class Paid(State):
+    def next_state(self, request):
+        print("Оплата подтверждена системой. Статус: Подтверждена")
+        request.state = Confirmed()
+
+    def cancel(self, request):
+        print("Нельзя отменить — оплата уже произведена!")
+        # остаёмся в Paid
+
+
+class Confirmed(State):
+    def next_state(self, request):
+        print("Бронирование уже подтверждено.")
+
+    def cancel(self, request):
+        print("Нельзя отменить — бронирование уже подтверждено.")
+
+
+class Cancelled(State):
+    def next_state(self, request):
+        print("Заявка отменена. Дальнейшие действия невозможны.")
+
+    def cancel(self, request):
+        print("Заявка уже отменена.")
+
+
+# ---------- CONTEXT ----------
+class BookingRequest:
+    def __init__(self):
+        self.state = Created()
+
+    def next(self):
+        self.state.next_state(self)
+
+    def cancel(self):
+        self.state.cancel(self)
+
+
+# ---------- DEMO ----------
+if __name__ == "__main__":
+    request = BookingRequest()
+
+    print("\n--- Демонстрация процесса бронирования ---\n")
+
+    request.next()      # Created → PendingPayment
+    request.next()      # PendingPayment → Paid
+    request.next()      # Paid → Confirmed
+
+    print("\nПопытка отменить после подтверждения:\n")
+    request.cancel()    # Нельзя отменить
+
+
+from abc import ABC, abstractmethod
+
+
+# -------------------------- ACTORS -------------------------------
+class User(ABC):
+    @abstractmethod
+    def role(self):
+        pass
+
+
+class Student(User):
+    def role(self):
+        return "Студент"
+
+    # --- Use Cases ---
+    def register(self):
+        print("[Студент] Регистрация выполнена")
+
+    def login(self):
+        print("[Студент] Авторизация выполнена")
+
+    def view_courses(self):
+        print("[Студент] Просмотр доступных курсов")
+
+    def enroll(self, course):
+        print(f"[Студент] Записался на курс: {course}")
+
+    def take_test(self, test):
+        print(f"[Студент] Прошел тест: {test}")
+
+    def leave_review(self, course):
+        print(f"[Студент] Оставил отзыв на курс: {course}")
+
+
+class Instructor(Student):   # Наследует функционал студента
+    def role(self):
+        return "Преподаватель"
+
+    # --- Instructor Use Cases ---
+    def create_course(self, title):
+        print(f"[Преподаватель] Создал курс: {title}")
+
+    def edit_course(self, title):
+        print(f"[Преподаватель] Отредактировал курс: {title}")
+
+    def add_material(self, title):
+        print(f"[Преподаватель] Добавил материалы для курса: {title}")
+
+    def create_test(self, title):
+        print(f"[Преподаватель] Создал тест: {title}")
+
+    def view_statistics(self):
+        print("[Преподаватель] Просмотр статистики успеваемости студентов")
+
+    def moderate_reviews(self):
+        print("[Преподаватель] Модерация отзывов выполнена")
+
+
+class Admin(Instructor):   # Наследует Instructor, значит и Student
+    def role(self):
+        return "Администратор"
+
+    # --- Admin Use Cases ---
+    def manage_users(self):
+        print("[Администратор] Управление учетными записями выполнено")
+
+    def manage_categories(self):
+        print("[Администратор] Управление категориями курсов выполнено")
+
+    def view_analytics(self):
+        print("[Администратор] Просмотр аналитики системы")
+
+
+# -------------------------- DEMO SCENARIOS -------------------------------
+if __name__ == "__main__":
+    print("\n======== Демонстрация вариантов использования (Use Cases) ========\n")
+
+    student = Student()
+    instructor = Instructor()
+    admin = Admin()
+
+    # ---------------- Student Actions ----------------
+    print("---- СТУДЕНТ ----")
+    student.register()
+    student.login()
+    student.view_courses()
+    student.enroll("Python Beginner")
+    student.take_test("Python Intro Test")
+    student.leave_review("Python Beginner")
+
+    # ---------------- Instructor Actions ----------------
+    print("\n---- ПРЕПОДАВАТЕЛЬ ----")
+    instructor.create_course("Data Science")
+    instructor.edit_course("Data Science")
+    instructor.add_material("Data Science")
+    instructor.create_test("DS Test 1")
+    instructor.view_statistics()
+    instructor.moderate_reviews()
+    instructor.take_test("Test for course testing")
+
+    # ---------------- Admin Actions ----------------
+    print("\n---- АДМИНИСТРАТОР ----")
+    admin.manage_users()
+    admin.manage_categories()
+    admin.view_analytics()
+    admin.enroll("AI Course")        # унаследовано от Student
+    admin.take_test("AI Test")       # тоже от Student
+
