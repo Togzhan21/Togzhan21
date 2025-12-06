@@ -1,0 +1,88 @@
+from enum import Enum, auto
+
+
+class BookingState(Enum):
+    IDLE = auto()
+    ROOM_SELECTED = auto()
+    BOOKING_CONFIRMED = auto()
+    PAID = auto()
+    BOOKING_CANCELLED = auto()
+
+
+class BookingStateMachine:
+    def __init__(self):
+        self.state = BookingState.IDLE
+        self.selected_room = None
+        print(f"Начальное состояние: {self.state.name}")
+
+    # --- Действия пользователя ---
+    def select_room(self, room_number):
+        if self.state == BookingState.IDLE:
+            self.state = BookingState.ROOM_SELECTED
+            self.selected_room = room_number
+            print(f"Комната {room_number} выбрана → Состояние: ROOM_SELECTED")
+        else:
+            print("Невозможно выбрать номер на данном этапе.")
+
+    def change_room(self, room_number):
+        if self.state == BookingState.ROOM_SELECTED:
+            self.selected_room = room_number
+            print(f"Изменён номер на {room_number}")
+        else:
+            print("Нельзя изменить номер после подтверждения бронирования.")
+
+    def confirm_booking(self):
+        if self.state == BookingState.ROOM_SELECTED:
+            self.state = BookingState.BOOKING_CONFIRMED
+            print("Бронирование подтверждено → Состояние: BOOKING_CONFIRMED")
+        else:
+            print("Нельзя подтвердить бронирование сейчас.")
+
+    def pay(self, amount):
+        if self.state == BookingState.BOOKING_CONFIRMED:
+            self.state = BookingState.PAID
+            print(f"Оплата {amount} успешно получена → Состояние: PAID")
+        else:
+            print("Оплата невозможна. Бронирование не подтверждено.")
+
+    def cancel(self):
+        if self.state in [
+            BookingState.ROOM_SELECTED,
+            BookingState.BOOKING_CONFIRMED
+        ]:
+            self.state = BookingState.BOOKING_CANCELLED
+            print("Бронирование отменено → Состояние: BOOKING_CANCELLED")
+        elif self.state == BookingState.PAID:
+            print("Нельзя отменить — бронирование уже оплачено.")
+        else:
+            print("Нет активного бронирования для отмены.")
+
+    # Дополнительная функция: расчет скидки
+    def calculate_discount(self, total_amount, discount_percent):
+        discount = total_amount * (discount_percent / 100)
+        new_total = total_amount - discount
+        print(f"Скидка {discount_percent}% → новая сумма: {new_total}")
+        return new_total
+
+    # История бронирования
+    def save_history(self):
+        print(f"Сохранение истории: номер={self.selected_room}, состояние={self.state.name}")
+
+
+# ----------------------------
+# Пример работы state machine
+# ----------------------------
+
+if __name__ == "__main__":
+    booking = BookingStateMachine()
+
+    booking.select_room(305)
+    booking.change_room(312)
+    booking.confirm_booking()
+
+    price = 20000
+    price = booking.calculate_discount(price, 10)
+
+    booking.pay(price)
+
+    booking.save_history()
