@@ -1,0 +1,116 @@
+
+
+
+
+
+    #2 часть
+
+class State:
+    def select_ticket(self, machine):
+        print("Действие недоступно в этом состоянии.")
+
+    def insert_money(self, machine, amount):
+        print("Действие недоступно в этом состоянии.")
+
+    def dispense_ticket(self, machine):
+        print("Действие недоступно в этом состоянии.")
+
+    def cancel(self, machine):
+        print("Действие недоступно в этом состоянии.")
+
+
+
+class Idle(State):
+    def select_ticket(self, machine):
+        print("Билет выбран. Переход в WaitingForMoney.")
+        machine.state = machine.waiting_for_money
+
+
+
+class WaitingForMoney(State):
+    def insert_money(self, machine, amount):
+        machine.money_inserted += amount
+        print(f"Добавлено {amount}. Итого: {machine.money_inserted}")
+
+        if machine.money_inserted >= machine.ticket_price:
+            print("Достаточно средств! Переход в MoneyReceived.")
+            machine.state = machine.money_received
+
+    def cancel(self, machine):
+        print("Покупка отменена → TransactionCanceled.")
+        machine.state = machine.transaction_canceled
+
+
+
+class MoneyReceived(State):
+    def dispense_ticket(self, machine):
+        print("Билет выдан! Переход в TicketDispensed.")
+        machine.state = machine.ticket_dispensed
+
+
+    def cancel(self, machine):
+        print("Покупка отменена. Деньги возвращены.")
+        machine.money_inserted = 0
+        machine.state = machine.transaction_canceled
+
+
+
+class TicketDispensed(State):
+    def dispense_ticket(self, machine):
+        print("Операция завершена. Возврат в Idle.")
+        machine.money_inserted = 0
+        machine.state = machine.idle
+
+
+
+class TransactionCanceled(State):
+    def cancel(self, machine):
+        print("Сброс в Idle.")
+        machine.money_inserted = 0
+        machine.state = machine.idle
+
+
+
+class TicketMachine:
+    def __init__(self):
+        self.ticket_price = 100
+        self.money_inserted = 0
+
+        # состояния
+        self.idle = Idle()
+        self.waiting_for_money = WaitingForMoney()
+        self.money_received = MoneyReceived()
+        self.ticket_dispensed = TicketDispensed()
+        self.transaction_canceled = TransactionCanceled()
+
+        self.state = self.idle
+
+    # методы для вызова действий
+    def select_ticket(self):
+        self.state.select_ticket(self)
+
+    def insert_money(self, amount):
+        self.state.insert_money(self, amount)
+
+    def dispense_ticket(self):
+        self.state.dispense_ticket(self)
+
+    def cancel(self):
+        self.state.cancel(self)
+
+
+
+if __name__ == "__main__":
+    m = TicketMachine()
+
+    m.select_ticket()       # выбор билета
+    m.insert_money(50)      # мало денег
+    m.insert_money(50)      # достаточно
+    m.dispense_ticket()     # выдача билета
+    m.dispense_ticket()     # завершение → Idle
+
+
+
+
+    #2 часть
+    
