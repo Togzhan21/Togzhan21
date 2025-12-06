@@ -1,0 +1,322 @@
+from abc import ABC, abstractmethod
+
+# ---------- STATE INTERFACE ----------
+class State(ABC):
+    @abstractmethod
+    def next(self, order):
+        pass
+
+    @abstractmethod
+    def cancel(self, order):
+        pass
+
+# ---------- STATES ----------
+class Idle(State):
+    def next(self, order):
+        print("Пользователь выбрал автомобиль → CarSelected")
+        order.state = CarSelected()
+
+    def cancel(self, order):
+        print("Невозможно отменить — заказ ещё не создан")
+
+class CarSelected(State):
+    def next(self, order):
+        print("Заказ подтвержден → OrderConfirmed")
+        order.state = OrderConfirmed()
+
+    def cancel(self, order):
+        print("Заказ отменён на этапе выбора автомобиля → TripCancelled")
+        order.state = TripCancelled()
+
+class OrderConfirmed(State):
+    def next(self, order):
+        print("Автомобиль в пути → CarArrived")
+        order.state = CarArrived()
+
+    def cancel(self, order):
+        print("Заказ отменён до прибытия автомобиля → TripCancelled")
+        order.state = TripCancelled()
+
+class CarArrived(State):
+    def next(self, order):
+        print("Поездка начата → InTrip")
+        order.state = InTrip()
+
+    def cancel(self, order):
+        print("Заказ отменён до начала поездки → TripCancelled")
+        order.state = TripCancelled()
+
+class InTrip(State):
+    def next(self, order):
+        print("Поездка завершена → TripCompleted")
+        order.state = TripCompleted()
+
+    def cancel(self, order):
+        print("Невозможно отменить — поездка уже началась")
+
+class TripCompleted(State):
+    def next(self, order):
+        print("Заказ завершен")
+
+    def cancel(self, order):
+        print("Невозможно отменить — поездка завершена")
+
+class TripCancelled(State):
+    def next(self, order):
+        print("Заказ отменен. Дальнейшие действия невозможны")
+
+    def cancel(self, order):
+        print("Заказ уже отменен")
+
+# ---------- CONTEXT ----------
+class CarOrder:
+    def __init__(self):
+        self.state = Idle()
+
+    def next(self):
+        self.state.next(self)
+
+    def cancel(self):
+        self.state.cancel(self)
+
+# ---------- DEMO ----------
+if __name__ == "__main__":
+    order = CarOrder()
+    print("\n--- Процесс заказа автомобиля ---\n")
+    
+    order.next()      # Idle -> CarSelected
+    order.next()      # CarSelected -> OrderConfirmed
+    order.next()      # OrderConfirmed -> CarArrived
+    order.next()      # CarArrived -> InTrip
+    order.next()      # InTrip -> TripCompleted
+
+    print("\nПопытка отмены после завершения поездки:\n")
+    order.cancel()    # Невозможно отменить
+
+2 задание
+
+from dataclasses import dataclass, field
+from typing import List, Optional
+
+# ----------------- Сущности -----------------
+@dataclass
+class Event:
+    id: int
+    name: str
+    date: str
+    location: str
+
+@dataclass
+class User:
+    id: int
+    name: str
+    role: str  # "Guest", "User", "Admin"
+
+@dataclass
+class Booking:
+    id: int
+    user: User
+    event: Event
+    status: str = "Active"  # Active или Cancelled
+
+# ----------------- Система -----------------
+class EventBookingSystem:
+    def __init__(self):
+        self.events: List[Event] = []
+        self.users: List[User] = []
+        self.bookings: List[Booking] = []
+        self.booking_counter = 1
+
+    # Просмотр мероприятий
+    def view_events(self):
+        print("\nСписок мероприятий:")
+        for e in self.events:
+            print(f"{e.id}: {e.name} | {e.date} | {e.location}")
+
+    # Бронирование мероприятия
+    def book_event(self, user: User, event_id: int):
+        event = self.find_event(event_id)
+        if event and user.role in ["User", "Admin"]:
+            booking = Booking(self.booking_counter, user, event)
+            self.bookings.append(booking)
+            self.booking_counter += 1
+            print(f"{user.name} забронировал мероприятие: {event.name}")
+        else:
+            print("Ошибка бронирования: доступ запрещён или событие не найдено.")
+
+    # Отмена бронирования
+    def cancel_booking(self, user: User, booking_id: int):
+        booking = self.find_booking(booking_id)
+        if booking and (booking.user == user or user.role == "Admin"):
+            booking.status = "Cancelled"
+            print(f"Бронирование {booking.id} отменено")
+        else:
+            print("Ошибка отмены бронирования")
+
+    # Управление мероприятиями (Admin)
+    def add_event(self, user: User, event: Event):
+        if user.role == "Admin":
+            self.events.append(event)
+            print(f"Мероприятие '{event.name}' добавлено")
+        else:
+            print("Доступ запрещён")
+
+    def edit_event(self, user: User, event_id: int, name=None, date=None, location=None):
+        if user.role != "Admin":
+            print("Доступ запрещён")
+            return
+        event = self.find_event(event_id)
+        if event:
+            event.name = name or event.name
+            event.date = date or event.date
+            event.location = location or event.location
+            print(f"Мероприятие {event.id} отредактировано")
+
+    def delete_event(self, user: User, event_id: int):
+        if user.role != "Admin":
+            print("Доступ запрещён")
+            return
+        event = self.find_event(event_id)
+        if event:
+            self.events.remove(event)
+            print(f"Мероприятие {event.id} удалено")
+
+    # Просмотр всех бронирований (Admin)
+    def view_all_bookings(self, user: User):
+        if user.role != "Admin":
+            print("Доступ запрещён")
+            return
+        print("\nВсе бронирования:")
+        for b in self.bookings:
+            print(f"{b.id}: {b.user.name} -> {b.event.name} | {b.status}")
+
+    # Вспомогательные методы
+    def find_event(self, event_id) -> Optional[Event]:
+        for e in self.events:
+            if e.id == event_id:
+                return e
+        return None
+
+    def find_booking(self, booking_id) -> Optional[Booking]:
+        for b in self.bookings:
+            if b.id == booking_id:
+                return b
+        return None
+
+# ----------------- Тестовые данные -----------------
+if __name__ == "__main__":
+    system = EventBookingSystem()
+
+    admin = User(1, "AdminUser", "Admin")
+    user1 = User(2, "Alice", "User")
+    guest = User(3, "GuestUser", "Guest")
+
+    system.users.extend([admin, user1, guest])
+
+    # Добавление событий
+    system.add_event(admin, Event(1, "Концерт", "2025-12-15", "Стадион"))
+    system.add_event(admin, Event(2, "Выставка", "2025-12-20", "Музей"))
+
+    # Просмотр событий
+    system.view_events()
+
+    # Бронирование
+    system.book_event(user1, 1)
+    system.book_event(guest, 2)  # Доступ запрещён
+
+    # Отмена бронирования
+    system.cancel_booking(user1, 1)
+
+    # Просмотр всех бронирований (Admin)
+    system.view_all_bookings(admin)
+
+
+3 ЗАДАНИЕ
+from dataclasses import dataclass, field
+from typing import List
+
+# ----------------- Сущности -----------------
+@dataclass
+class Product:
+    id: int
+    name: str
+    price: float
+
+@dataclass
+class Order:
+    products: List[Product] = field(default_factory=list)
+    customer_name: str = ""
+    address: str = ""
+    paid: bool = False
+    processed: bool = False
+    shipped: bool = False
+
+# ----------------- Система -----------------
+class OnlineShop:
+    def __init__(self):
+        self.orders: List[Order] = []
+
+    # Выбор и добавление товаров
+    def add_product_to_cart(self, order: Order, product: Product):
+        order.products.append(product)
+        print(f"Добавлен товар: {product.name} | Цена: {product.price}")
+
+    # Оформление заказа
+    def checkout(self, order: Order, customer_name: str, address: str):
+        order.customer_name = customer_name
+        order.address = address
+        print(f"Оформлен заказ для {customer_name}, адрес: {address}")
+
+    # Оплата заказа
+    def pay_order(self, order: Order, amount: float):
+        total = sum(p.price for p in order.products)
+        if amount >= total:
+            order.paid = True
+            print("Оплата прошла успешно")
+        else:
+            order.paid = False
+            print("Ошибка оплаты: недостаточно средств")
+
+    # Обработка заказа
+    def process_order(self, order: Order):
+        if order.paid:
+            order.processed = True
+            print("Заказ обрабатывается на складе")
+        else:
+            print("Невозможно обработать заказ: оплата не прошла")
+
+    # Отправка заказа
+    def ship_order(self, order: Order):
+        if order.processed:
+            order.shipped = True
+            print("Заказ отправлен покупателю")
+        else:
+            print("Невозможно отправить заказ: заказ не обработан")
+
+# ----------------- DEMO -----------------
+if __name__ == "__main__":
+    shop = OnlineShop()
+    order1 = Order()
+
+    # Создание товаров
+    p1 = Product(1, "Книга Python", 1500)
+    p2 = Product(2, "Клавиатура", 3500)
+
+    # Выбор товаров
+    shop.add_product_to_cart(order1, p1)
+    shop.add_product_to_cart(order1, p2)
+
+    # Оформление заказа
+    shop.checkout(order1, "Иван Иванов", "ул. Примерная, 10")
+
+    # Оплата
+    shop.pay_order(order1, 5000)  # Достаточно
+    shop.pay_order(order1, 4000)  # Недостаточно
+
+    # Обработка и отправка
+    shop.process_order(order1)
+    shop.ship_order(order1)
+
+
+
+2 
