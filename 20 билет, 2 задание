@@ -1,0 +1,105 @@
+class VirtualServer:
+    def __init__(self):
+        self.cpu = None
+        self.memory = None
+        self.operating_system = None
+        self.storage = None
+        self.network_configuration = None
+        self.additional_options = []
+
+    def __str__(self):
+        return (
+            f"VirtualServer("
+            f"CPU={self.cpu}, "
+            f"Memory={self.memory}GB, "
+            f"OS={self.operating_system}, "
+            f"Storage={self.storage}, "
+            f"Network={self.network_configuration}, "
+            f"Options={self.additional_options})"
+        )
+
+
+# Строитель
+class ServerBuilder:
+    def __init__(self):
+        self.server = VirtualServer()
+
+    def set_cpu(self, cores):
+        self.server.cpu = cores
+        return self
+
+    def set_memory(self, size):
+        self.server.memory = size
+        return self
+
+    def set_operating_system(self, os_type):
+        self.server.operating_system = os_type
+        return self
+
+    def set_storage(self, size, storage_type):
+        self.server.storage = f"{size}GB {storage_type}"
+        return self
+
+    def set_network_configuration(self, config):
+        self.server.network_configuration = config
+        return self
+
+    def add_option(self, option):
+        self.server.additional_options.append(option)
+        return self
+
+    def build(self):
+        return self.server
+
+
+class ServerDirector:
+
+    @staticmethod
+    def create_development_server():
+        return (
+            ServerBuilder()
+            .set_cpu(2)
+            .set_memory(4)
+            .set_operating_system("Linux")
+            .set_storage(50, "SSD")
+            .set_network_configuration("Local Network")
+            .build()
+        )
+
+    @staticmethod
+    def create_testing_server():
+        return (
+            ServerBuilder()
+            .set_cpu(4)
+            .set_memory(8)
+            .set_operating_system("Linux")
+            .set_storage(100, "SSD")
+            .set_network_configuration("Secure Network")
+            .add_option("Backup")
+            .build()
+        )
+
+    @staticmethod
+    def create_production_server():
+        return (
+            ServerBuilder()
+            .set_cpu(8)
+            .set_memory(32)
+            .set_operating_system("Linux")
+            .set_storage(500, "SSD")
+            .set_network_configuration("High Security Network")
+            .add_option("Monitoring")
+            .add_option("Auto Backup")
+            .build()
+        )
+
+
+if __name__ == "__main__":
+    dev_server = ServerDirector.create_development_server()
+    print(dev_server)
+
+    test_server = ServerDirector.create_testing_server()
+    print(test_server)
+
+    prod_server = ServerDirector.create_production_server()
+    print(prod_server)
